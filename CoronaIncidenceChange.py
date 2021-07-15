@@ -2,10 +2,14 @@
 
 import pandas as pd
 import urllib.request
+import xml.etree.ElementTree as ET
+import re
 
-source_url = 'https://opendata.ecdc.europa.eu/covid19/nationalcasedeath_eueea_daily_ei/csv/data.csv'
+data_url = 'https://opendata.ecdc.europa.eu/covid19/nationalcasedeath_eueea_daily_ei/csv/data.csv'
 svg_url = 'https://upload.wikimedia.org/wikipedia/commons/0/05/Blank_map_of_Europe_%28without_disputed_regions%29.svg'
 days = 7
+red = '#c00000'
+green = '#00c000'
 
 def get_population(country):
     if country == 'AT':
@@ -24,7 +28,7 @@ def get_population(country):
         return 5840045
     elif country == 'EE':
         return 1300000
-    elif country == 'EL':
+    elif country == 'GR':
         return 10718565
     elif country == 'ES':
         return 47100000
@@ -72,6 +76,8 @@ def get_population(country):
         return 0
 
 def get_cases(data, country, backlook):
+    if country == 'GR':
+        country = 'EL'
     temp = data.query('geoId == "{0}"'.format(country))
     temp = temp.head(7 + backlook).tail(7)
     
@@ -79,6 +85,11 @@ def get_cases(data, country, backlook):
 
 def get_countries_in_dataset(data):
     list = data.geoId.drop_duplicates().to_list()
+    
+    if 'EL' in list:
+        list.remove('EL')
+        list.append('GR')
+    
     list.sort()
     
     return list
@@ -86,7 +97,7 @@ def get_countries_in_dataset(data):
 def calc_incidence(cases, pop):
     return cases / pop * 100000
 
-# urllib.request.urlretrieve(source_url, "data.csv")
+urllib.request.urlretrieve(data_url, "data.csv")
 urllib.request.urlretrieve(svg_url, "map.svg")
 
 data = pd.read_csv('data.csv')
@@ -107,8 +118,36 @@ for country in countries:
     percent = average / first * 100 - 100
     
     changes[country] = percent
-    
+
 changes = sorted(changes.items(), key=lambda x: x[1])
-    
+
+svg = ET.parse('map.svg')
+root_node = svg.getroot()
+
 for country, change in changes:
     print('Country: {0} change {1:+.0f} %'.format(country, change))
+    country_node = root_node.findall('.//*[@id="{0}"]'.format(country.lower()))[0]
+    style = country_node.attrib['style']
+    
+    if change > 0:
+        country_node.attrib['style'] = style.replace('#c0c0c0', red)
+    elif change < 0:
+        country_node.attrib['style'] = style.replace('#c0c0c0', green)
+
+svg.write('map-edited.svg')
+
+html = open('results.html', 'w')
+html.write('<!doctype html>\n')
+html.write('<html lang="en">\n')
+html.write('<head><title>-</title><script src="sorttable.js"></script><style>td { border: 1px solid #a2a9b1; }</style></head>\n')
+html.write('<body>\n')
+html.write('<img src="map-edited.svg" alt="Map" />\n')
+html.write('<table class="sortable" style="border-collapse: collapse;">\n')
+html.write('<tr><th>Country</th><th>Change in the last {0} days</th></tr>\n'.format(days))
+
+for country, change in changes:
+    html.write('<tr><td>{0}</td><td sorttable_customkey="{1:.0f}">{1:+.0f} %</td></tr>\n'.format(country, change, change))
+
+html.write('</table>')
+html.write('</body></html>\n')
+html.close()
