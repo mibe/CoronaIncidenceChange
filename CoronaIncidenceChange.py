@@ -4,6 +4,8 @@ import pandas as pd
 import urllib.request
 import xml.etree.ElementTree as ET
 import re
+import os.path
+from datetime import datetime
 
 # https://www.ecdc.europa.eu/en/publications-data/data-daily-new-cases-covid-19-eueea-country
 data_url = 'https://opendata.ecdc.europa.eu/covid19/nationalcasedeath_eueea_daily_ei/csv/data.csv'
@@ -34,8 +36,10 @@ def get_countries_in_dataset():
 def calc_incidence(cases, pop):
     return cases / pop * 100000
 
-#urllib.request.urlretrieve(data_url, "data.csv")
-urllib.request.urlretrieve(svg_url, "map.svg")
+urllib.request.urlretrieve(data_url, "data.csv")
+
+if not os.path.isfile("map.svg"):
+    urllib.request.urlretrieve(svg_url, "map.svg")
 
 data = pd.read_csv('data.csv')
 pop_data = pd.read_csv('countries.csv')
@@ -52,7 +56,7 @@ html.write('<head><title>Incidence change in the EU</title><script src="sorttabl
 html.write('<body>\n')
 html.write('<img src="map-edited.svg" alt="Map" />\n')
 html.write('<table class="sortable" style="border-collapse: collapse; width: 680px;">\n')
-html.write('<tr><th>Country</th><th>Name</th><th>Average incidence<br />in the last {0} days</th><th>Change in<br />the last {0} days</th></tr>\n'.format(days))
+html.write('<tr><th>Country</th><th>Name</th><th>Latest incidence</th><th>Average incidence<br />in the last {0} days</th><th>Change in<br />the last {0} days</th></tr>\n'.format(days))
 
 for country in countries:
     pop = pop_data.query('Code == "{0}"'.format(country)).iloc[0]['Population']
@@ -63,6 +67,7 @@ for country in countries:
     last_cases.reverse()
     
     first = last_cases[0]
+    latest = last_cases[-1]
     average = sum(last_cases) / days
     change = average / first * 100 - 100
     
@@ -76,10 +81,11 @@ for country in countries:
         country_node.attrib['style'] = style.replace('#c0c0c0', green)
     
     name = pop_data.query('Code == "{0}"'.format(country)).iloc[0]['Name']
-    html.write('<tr><td>{0}</td><td>{1}</td><td>{2:.1f}</td><td sorttable_customkey="{3:.0f}">{3:+.0f} %</td></tr>\n'.format(country, name, average, change))
+    html.write('<tr><td>{0}</td><td>{1}</td><td>{2:.1f}</td><td>{3:.1f}</td><td sorttable_customkey="{4:.0f}">{4:+.0f} %</td></tr>\n'.format(country, name, latest, average, change))
 
 svg.write('map-edited.svg')
 
 html.write('</table>')
+html.write('<p>Report created at {0}.</p>'.format(datetime.now()))
 html.write('</body></html>\n')
 html.close()
