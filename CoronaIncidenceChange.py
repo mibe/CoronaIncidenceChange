@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Small script to display the SARS-CoV-2 incidence change in the EU.
+"""A small script to display the SARS-CoV-2 incidence change in the EU.
 It uses data provided by the EU. This data is © ECDC [2005-2021].
 The map used is from Wikimedia Commons and is © Nordwestern, CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0
 
@@ -11,6 +11,8 @@ SPDX-License-Identifier: MIT
 Requirements:
 - Python >= 3.8
 - pandas
+For viewing the results:
+- a webbrowser with JavaScript enabled and SVG support
 
 Tested with Python 3.8.2 & pandas 1.2.0
 """
