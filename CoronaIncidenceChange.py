@@ -54,6 +54,10 @@ def get_countries_in_dataset():
         list.remove('EL')
         list.append('GR')
     
+    # Remove the United Kingdom.
+    if 'UK' in list:
+        list.remove('UK')
+    
     list.sort()
     
     return list
