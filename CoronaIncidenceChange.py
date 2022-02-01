@@ -71,8 +71,10 @@ urllib.request.urlretrieve(data_url, "data.csv")
 if not os.path.isfile("map.svg"):
     urllib.request.urlretrieve(svg_url, "map.svg")
 
-# Read the cases and the population data
+# Read the cases and the population data. The cases data needs to be sorted by date.
 data = pd.read_csv('data.csv')
+data['dateRep'] = pd.to_datetime(data['dateRep'], format='%d/%m/%Y')
+data = data.sort_values(by='dateRep', ascending=False)
 pop_data = pd.read_csv('countries.csv')
 
 countries = get_countries_in_dataset()
